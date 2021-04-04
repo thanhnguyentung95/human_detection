@@ -68,7 +68,7 @@ class Conv2d(nn.Module):
                                 bias=not batchnorm)
         if activation == 'leaky':
             self.activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)  # same hyperparameters with Scaled Yolo v4
-        elif activation == None:  # no activation 
+        elif activation == None:  # no activation
             self.activation = None
         
         if batchnorm:
@@ -86,5 +86,39 @@ class Conv2d(nn.Module):
 
 
 class YoloLayer(nn.Module):
-    def __init__(self, anchors, nc, img_size, yolo_index, layers, stride):
+    def __init__(self, anchors, nc, stride):
         super(YoloLayer, self).__init__()
+        self.nx, self.ny = 0, 0 # Intialize number of grids xy
+        self.na = len(anchors)
+        self.nc = nc
+        self.no = nc + 5    # xywh + objectness + nc
+        self.anchors = torch.Tensor(anchors).view(1, self.na, 1, 1, 2)
+        self.stride = stride
+
+
+    def create_grids(self, ng=(13, 13), device='cpu'):
+        self.nx, self.ny = ng
+        if not self.training:
+            yv, xv = torch.meshgrid(torch.arange(self.ny, device=device), torch.arange(self.nx, device=device))
+            self.grid = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float() # bs, anchors, 
+
+
+    def forward(self, x):
+        bs, _, nx, ny = x.shape
+        if (self.nx, self.ny) != (nx, ny):
+            self.create_grids((nx, ny), x.device)
+
+        x = x.view(bs, self.na, self.no, self.ny, self.nx).permute(0, 1, 3, 4, 2).contiguous()
+
+        if self.training:
+            return x
+
+        # Follow new encoding of bounding box coordinates
+        # https://github.com/AlexeyAB/darknet/issues/6987#issuecomment-729218069
+
+        # inference
+        io = x.sigmoid()
+        io[..., 2] = (io[..., 2] * 2. - 0.5 + self.grid) * self.stride
+        io[..., 2:4] = (io[..., 2:4] * 2.) ** 2 * self.anchors
+
+        return io.view(bs, -1, self.no), x
