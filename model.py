@@ -42,6 +42,11 @@ class Yolov4Tiny(nn.Module):
         self.conv17 = Conv2d(256, 512, 3, stride=1, activation='leaky')     # 200
         self.conv18 = Conv2d(512, 18, stride=1, activation=None)            # 208
 
+        # Head
+        # mask = 3,4,5
+        # anchors = 10,14,  23,27,  37,58,  81,82,  135,169,  344,319
+        self.yolo1 = YoloLayer(anchors=(81,82, 135,169, 344,319), nc=1, stride=32)  # 217
+
 
 class Route(nn.Module):
     def __init__(self, groups=1, group_id=1):
@@ -95,13 +100,11 @@ class YoloLayer(nn.Module):
         self.anchors = torch.Tensor(anchors).view(1, self.na, 1, 1, 2)
         self.stride = stride
 
-
     def create_grids(self, ng=(13, 13), device='cpu'):
         self.nx, self.ny = ng
         if not self.training:
             yv, xv = torch.meshgrid(torch.arange(self.ny, device=device), torch.arange(self.nx, device=device))
             self.grid = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float() # bs, anchors, 
-
 
     def forward(self, x):
         bs, _, nx, ny = x.shape
