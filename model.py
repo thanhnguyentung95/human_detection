@@ -40,12 +40,76 @@ class Yolov4Tiny(nn.Module):
         # Neck
         self.conv16 = Conv2d(512, 256, 1, stride=1, activation='leaky')     # 192
         self.conv17 = Conv2d(256, 512, 3, stride=1, activation='leaky')     # 200
-        self.conv18 = Conv2d(512, 18, stride=1, activation=None)            # 208
+        self.conv18 = Conv2d(512, 18, stride=1, activation='linear')            # 208
 
         # Head
         # mask = 3,4,5
         # anchors = 10,14,  23,27,  37,58,  81,82,  135,169,  344,319
         self.yolo1 = YoloLayer(anchors=(81,82, 135,169, 344,319), nc=1, stride=32)  # 217
+
+        self.route10 = Route()                                              # 234
+        self.conv19 = Conv2D(256, 128, 1, stride=1, activation='leaky')     # 237
+        self.upsample1 = nn.Upsample(scale_factor=2)                        # 245
+        self.route11 = Route()                                              # 248
+        self.conv2d = Conv2D(256, 256, 3, stride=1, activation='leaky')     # 251
+        self.conv2d = Conv2D(256, 18, 1, 1, activation='linear')            # 259
+        self.yolo2 = YoloLayer(anchors=(10,14,  23,27,  37,58), nc=1, stride=16)    # 266
+
+    def forward(self, x):
+        cv1 = self.conv1(x)         # 25        
+        cv2 = self.conv2(cv1)       # 33
+        cv3 = self.conv3(cv2)       # 41
+
+        r1 = self.route1(cv3)       # 49
+        cv4 = self.conv4(r1)        # 54
+        cv5 = self.conv5(cv4)       # 62
+
+        r2 = self.route2(cv4, cv5)  # 70
+        cv6 = self.conv6(r2)        # 73
+
+        r3 = self.route3(cv3, cv6)  # 81
+        p1 = self.maxpool1(r3)      # 84
+        cv7 = self.conv7(p1)        # 88
+
+        r4 = self.route4(cv7)       # 96
+        cv8 = self.conv8(r4)        # 101
+        cv9 = self.conv9(cv8)       # 109
+
+        r5 = self.route5(cv9, cv8)  # 117
+        cv10 = self.conv10(r5)      # 120
+
+        r6 = self.route6(cv7, cv10) # 128
+        p2 = self.maxpool2(r6)      # 131
+        cv11 = self.conv11(p2)      # 135
+
+        r7 = self.route7(cv11)      # 143
+        cv12 = self.conv12(r7)      # 148
+        cv13 = self.conv13(cv12)    # 156
+        
+        r8 = self.route8(cv13, cv12)    # 164
+        cv14 = self.conv14(r8)      # 167
+
+        r9 = self.route9(cv14, cv11)    # 175
+        p3 = self.maxpool3(r9)      # 178
+        cv15 = self.conv15(p3)      # 182
+
+        cv16 = self.conv16(cv15)    # 192
+        cv17 = self.conv17(cv16)    # 200
+        cv18 = self.conv18(cv17)    # 208
+
+        out1 = self.yolo1(cv18)     # 217
+
+        r10 = self.route10(cv16)    # 234
+        cv19 = self.conv19(r10)     # 237
+        u1 = self.upsample1(cv19)   # 245
+
+        r11 = self.route11(u1, r8)  # 248
+        cv20 = self.conv20(r11)     # 251
+        cv21 = self.conv21(cv20)    # 259
+
+        out2 = self.yolo2(cv21)     # 266
+
+        return out1, out2
 
 
 class Route(nn.Module):
@@ -73,7 +137,7 @@ class Conv2d(nn.Module):
                                 bias=not batchnorm)
         if activation == 'leaky':
             self.activation = nn.LeakyReLU(negative_slope=0.1, inplace=False)  # same hyperparameters with Scaled Yolo v4
-        elif activation == None:  # no activation
+        elif activation == 'linear' or activation == None:  # no activation
             self.activation = None
         
         if batchnorm:
@@ -86,7 +150,7 @@ class Conv2d(nn.Module):
         if self.batchnorm:
             x = self.batchnorm(x)
         if self.activation:
-            x = self.activation(x)        
+            x = self.activation(x)    
         return x
 
 
