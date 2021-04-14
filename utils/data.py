@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import os
 
+
 class Data(Dataset):
     def __init__(self, path, img_size=640):
         # Assert if file exist
@@ -15,6 +16,7 @@ class Data(Dataset):
             self.img_paths = [p.replace('./', dirname).strip() for p in self.img_paths]
 
         self.len = len(img_paths)
+        # self.label_path
     
     
     def __len__(self):
