@@ -43,8 +43,13 @@ class Data(Dataset):
         img = cv2.resize(img, (self.img_size, self.img_size), interpolation=cv2.INTER_LINEAR)
         img = torch.from_numpy(img).permute(2, 0, 1) # convert from channel last to channel first
         
-        with open(label_path) as f:
-            label = np.array([line.split() for line in f.read().splitlines()], dtype=np.float32)
+        label = []
+        if os.path.isfile(label_path):
+            with open(label_path) as f:
+                label = np.array([line.split() for line in f.read().splitlines()], dtype=np.float32)
+                
+        if len(label) == 0:
+            label = np.zeros((1, 5), dtype=np.float32)
         
         # Convert
         # xyxy2xywh(label) # also convert to Tensor 
@@ -62,12 +67,7 @@ def collate_fn(batch):
     for i, label in enumerate(labels):
         nl = label.shape[0] # number of labels (objects)
         index = torch.ones((nl, 1)) * i
-        print(torch.utils.data.get_worker_info())
-        # print('index shape: ', index.size())
-        print(torch.utils.data.get_worker_info())
-        # print('label shape: ', label.size())
         labels[i] = torch.hstack((index, label))
-        # print('labels after stacked: ', labels[i])
     
     imgs = torch.stack(imgs, 0)
     labels = torch.cat(labels, 0)
@@ -98,7 +98,3 @@ def create_dataloader(path, img_size=640, batch_size=8):
                                 collate_fn=collate_fn)
     
     return dataloader
-    
-    
-
-    

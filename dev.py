@@ -1,17 +1,19 @@
 import cv2
 from utils.data import create_dataloader
 
-
+# hard code, path to list image file
 train_path = '/home/heligate/Documents/ScaledYOLOv4/coco/train2017.txt'
 
+# create data loader
 dataloader = create_dataloader(train_path, batch_size=8, img_size=640)
 
-
+# index sample in batch w
 batch_index = 7
+target_batch = 150
 
 for i, item in enumerate(iter(dataloader)):
        data = item
-       if i == 0:
+       if i == target_batch:
               break
 
 img, label = data
