@@ -32,7 +32,6 @@ class Data(Dataset):
         return self.len
 
     def __getitem__(self, index):
-        print('index: ', index)
         img, label = None, None
         
         # Get image and its label by index
@@ -42,18 +41,47 @@ class Data(Dataset):
         img = cv2.imread(img_path)
         assert img is not None, 'Can not read ' + img_path
         img = cv2.resize(img, (self.img_size, self.img_size), interpolation=cv2.INTER_LINEAR)
+        img = torch.from_numpy(img).permute(2, 0, 1) # convert from channel last to channel first
         
         with open(label_path) as f:
             label = np.array([line.split() for line in f.read().splitlines()], dtype=np.float32)
         
         # Convert
+        # xyxy2xywh(label) # also convert to Tensor 
         label = torch.from_numpy(label)
+        # print('after convert label shape is: ', label.size())
         
         return img, label
     
 
 def collate_fn(batch):
-    img, label = zip(*batch)
+    imgs, labels = zip(*batch)
+    labels = list(labels)
+    
+    # horizontally stack index of labels
+    for i, label in enumerate(labels):
+        nl = label.shape[0] # number of labels (objects)
+        index = torch.ones((nl, 1)) * i
+        print(torch.utils.data.get_worker_info())
+        # print('index shape: ', index.size())
+        print(torch.utils.data.get_worker_info())
+        # print('label shape: ', label.size())
+        labels[i] = torch.hstack((index, label))
+        # print('labels after stacked: ', labels[i])
+    
+    imgs = torch.stack(imgs, 0)
+    labels = torch.cat(labels, 0)
+    
+    return imgs, labels
+
+
+def xyxy2xywh(labels):
+    for i, label in enumerate(labels):
+        x = (label[1] + label[3]) / 2
+        y = (label[2] + label[4]) / 2
+        w = (label[3] - label[1])
+        h = (label[4] - label[2])
+        labels[i, -4:] = [x, y, w, h]
 
 
 def create_dataloader(path, img_size=640, batch_size=8):
@@ -67,7 +95,7 @@ def create_dataloader(path, img_size=640, batch_size=8):
                                 batch_size=batch_size,
                                 num_workers=nw,
                                 sampler=None,
-                                collate_fn=None)
+                                collate_fn=collate_fn)
     
     return dataloader
     
