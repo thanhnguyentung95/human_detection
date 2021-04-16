@@ -9,7 +9,7 @@ dataloader = create_dataloader(train_path, batch_size=8, img_size=640)
 
 # index sample in batch w
 batch_index = 7
-target_batch = 150
+target_batch = 1000
 
 for i, item in enumerate(iter(dataloader)):
        data = item
