@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 
 
@@ -6,17 +7,17 @@ class Yolov4Tiny(nn.Module):
     def __init__(self):
         ''' References ./cfg/yolov4-tiny.cfg '''
         super(Yolov4Tiny, self).__init__()
-
+        anchors = np.array([10,14,  23,27,  37,58,  81,82,  135,169,  344,319]).reshape((-1, 2))
         # Backbone
         # Conv2d(..., stride=2, padding=1, dilation=1, ..., batchnorm=True)
-        self.conv1 = Conv2d(3, 32, 3, stride=2, activation='leaky'),        # 25
-        self.conv2 = Conv2d(32, 64, 3, stride=2, activation='leaky'),       # 33
-        self.conv3 = Conv2d(64, 64, 3, stride=1, activation='leaky'),       # 41
+        self.conv1 = Conv2d(3, 32, 3, stride=2, activation='leaky')         # 25
+        self.conv2 = Conv2d(32, 64, 3, stride=2, activation='leaky')        # 33
+        self.conv3 = Conv2d(64, 64, 3, stride=1, activation='leaky')        # 41
         self.route1 = Route(groups=2, group_id=1)                           # 49
         self.conv4 = Conv2d(32, 32, 3, stride=1, activation='leaky')        # 54
         self.conv5 = Conv2d(32, 32, 3, stride=1)                            # 62
         self.route2 = Route()                                               # 70
-        self.conv6 = Conv2d(64, 64, 1, stride=1, activation='leaky')        # 73
+        self.conv6 = Conv2d(64, 64, 1, stride=1, padding=0, activation='leaky')        # 73
         self.route3 = Route()                                               # 81
         self.maxpool1 = nn.MaxPool2d(2, stride=2)                           # 84
         self.conv7 = Conv2d(128, 128, 3, stride=1, activation='leaky')      # 88
@@ -24,7 +25,7 @@ class Yolov4Tiny(nn.Module):
         self.conv8 = Conv2d(64, 64, 3, stride=1, activation='leaky')        # 101
         self.conv9 = Conv2d(64, 64, 3, stride=1, activation='leaky')        # 109
         self.route5 = Route()                                               # 117
-        self.conv10 = Conv2d(128, 128, 1, stride=1, activation='leaky')     # 120
+        self.conv10 = Conv2d(128, 128, 1, stride=1, padding=0, activation='leaky')     # 120
         self.route6 = Route()                                               # 128
         self.maxpool2 = nn.MaxPool2d(2, stride=2)                           # 131
         self.conv11 = Conv2d(256, 256, 3, stride=1, activation='leaky')     # 135
@@ -32,40 +33,46 @@ class Yolov4Tiny(nn.Module):
         self.conv12 = Conv2d(128, 128, 3, stride=1, activation='leaky')     # 148
         self.conv13 = Conv2d(128, 128, 3, stride=1, activation='leaky')     # 156
         self.route8 = Route()                                               # 164
-        self.conv14 = Conv2d(256, 256, 1, stride=1, activation='leaky')     # 167 
+        self.conv14 = Conv2d(256, 256, 1, padding=0, stride=1, activation='leaky')     # 167 
         self.route9 = Route()                                               # 175
         self.maxpool3 = nn.MaxPool2d(2, stride=2)                           # 178
         self.conv15 = Conv2d(512, 512, 3, stride=1, activation='leaky')     # 182
 
         # Neck
-        self.conv16 = Conv2d(512, 256, 1, stride=1, activation='leaky')     # 192
+        self.conv16 = Conv2d(512, 256, 1, stride=1, padding=0, activation='leaky')     # 192
         self.conv17 = Conv2d(256, 512, 3, stride=1, activation='leaky')     # 200
-        self.conv18 = Conv2d(512, 18, stride=1, activation='linear')            # 208
+        self.conv18 = Conv2d(512, 18, 1, stride=1, padding=0, activation='linear')            # 208
 
         # Head
         # mask = 3,4,5
         # anchors = 10,14,  23,27,  37,58,  81,82,  135,169,  344,319
-        self.yolo1 = YoloLayer(anchors=(81,82, 135,169, 344,319), nc=1, stride=32)  # 217
+        self.yolo1 = YoloLayer(anchors=anchors[3:, :], nc=1, stride=32)            # 217
 
         self.route10 = Route()                                              # 234
-        self.conv19 = Conv2D(256, 128, 1, stride=1, activation='leaky')     # 237
+        self.conv19 = Conv2d(256, 128, 1, stride=1, padding=0, activation='leaky')     # 237
         self.upsample1 = nn.Upsample(scale_factor=2)                        # 245
         self.route11 = Route()                                              # 248
-        self.conv2d = Conv2D(256, 256, 3, stride=1, activation='leaky')     # 251
-        self.conv2d = Conv2D(256, 18, 1, 1, activation='linear')            # 259
-        self.yolo2 = YoloLayer(anchors=(10,14,  23,27,  37,58), nc=1, stride=16)    # 266
+        self.conv2d = Conv2d(256, 256, 3, stride=1, activation='leaky')     # 251
+        self.conv2d = Conv2d(256, 18, 1, 1, activation='linear')            # 259
+        self.yolo2 = YoloLayer(anchors=anchors[0:3, :], nc=1, stride=16)    # 266
 
     def forward(self, x):
         cv1 = self.conv1(x)         # 25        
         cv2 = self.conv2(cv1)       # 33
         cv3 = self.conv3(cv2)       # 41
+        print('cv3: ', cv3.size())
 
         r1 = self.route1(cv3)       # 49
+        print('r1: ', r1.size())
         cv4 = self.conv4(r1)        # 54
+        print('cv4: ', cv4.size())
         cv5 = self.conv5(cv4)       # 62
+        print('cv5: ', cv5.size())
 
         r2 = self.route2(cv4, cv5)  # 70
+        print('r2: ', r2.size())
         cv6 = self.conv6(r2)        # 73
+        print('cv6: ', cv6.size())
 
         r3 = self.route3(cv3, cv6)  # 81
         p1 = self.maxpool1(r3)      # 84
@@ -91,17 +98,25 @@ class Yolov4Tiny(nn.Module):
 
         r9 = self.route9(cv14, cv11)    # 175
         p3 = self.maxpool3(r9)      # 178
+        print('p3: ', p3.size())
         cv15 = self.conv15(p3)      # 182
+        print('cv15: ', cv15.size())
 
         cv16 = self.conv16(cv15)    # 192
+        print('cv16: ', cv16.size())
         cv17 = self.conv17(cv16)    # 200
+        print('cv17: ', cv17.size())
         cv18 = self.conv18(cv17)    # 208
+        print('cv18: ', cv18.size())
 
         out1 = self.yolo1(cv18)     # 217
 
         r10 = self.route10(cv16)    # 234
+        print('r10: ', r10.size())
         cv19 = self.conv19(r10)     # 237
+        print('cv19: ', cv19.size())
         u1 = self.upsample1(cv19)   # 245
+        print('u1: ', u1.size())
 
         r11 = self.route11(u1, r8)  # 248
         cv20 = self.conv20(r11)     # 251
@@ -113,17 +128,24 @@ class Yolov4Tiny(nn.Module):
 
 
 class Route(nn.Module):
-    def __init__(self, groups=1, group_id=1):
+    def __init__(self, groups=1, group_id=0):
         super(Route, self).__init__()
         self.groups = groups
         self.group_id = group_id
 
     def forward(self, *input):
-        x = torch.cat(input, dim=1)   
-        channels = x.shape[1] // self.groups  # number of channels in output
+        # if len(input) > 1:    
+        #     print('input 1: {} - input 2: {}'.format(input[0].size(), input[1].size()))
+        x = torch.cat(input, dim=1)
+        # if len(input) > 1:
+        #     print('after cat size: ', x.size())
+        channels = x.shape[1] // self.groups  # number of channels in output        
         begin = channels*self.group_id
-        out = x[:, begin:begin+channels]
-        return 
+        out = x[:, begin:begin+channels, ...]
+        # if len(input) > 1:
+        #     print("groups: {} - group_id: {} - begin {} - end: {} - outputsize: {}"
+                # .format(self.groups, self.group_id, begin, begin+channels, out.size()))
+        return out
 
 
 class Conv2d(nn.Module):

@@ -20,9 +20,6 @@ img, label = data
 img = img[batch_index].permute(1, 2, 0).numpy()
 labels = label.numpy()
 
-print('label')
-print(label)
-
 cv2.imwrite('img.jpg', img)
 img = cv2.imread('img.jpg')
 
