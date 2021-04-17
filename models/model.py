@@ -52,27 +52,21 @@ class Yolov4Tiny(nn.Module):
         self.conv19 = Conv2d(256, 128, 1, stride=1, padding=0, activation='leaky')     # 237
         self.upsample1 = nn.Upsample(scale_factor=2)                        # 245
         self.route11 = Route()                                              # 248
-        self.conv2d = Conv2d(256, 256, 3, stride=1, activation='leaky')     # 251
-        self.conv2d = Conv2d(256, 18, 1, 1, activation='linear')            # 259
+        self.conv20 = Conv2d(384, 256, 3, stride=1, activation='leaky')     # 251
+        self.conv21 = Conv2d(256, 18, 1, stride=1, padding=0, activation='linear')            # 259
         self.yolo2 = YoloLayer(anchors=anchors[0:3, :], nc=1, stride=16)    # 266
 
     def forward(self, x):
         cv1 = self.conv1(x)         # 25        
         cv2 = self.conv2(cv1)       # 33
         cv3 = self.conv3(cv2)       # 41
-        print('cv3: ', cv3.size())
 
         r1 = self.route1(cv3)       # 49
-        print('r1: ', r1.size())
         cv4 = self.conv4(r1)        # 54
-        print('cv4: ', cv4.size())
         cv5 = self.conv5(cv4)       # 62
-        print('cv5: ', cv5.size())
 
         r2 = self.route2(cv4, cv5)  # 70
-        print('r2: ', r2.size())
         cv6 = self.conv6(r2)        # 73
-        print('cv6: ', cv6.size())
 
         r3 = self.route3(cv3, cv6)  # 81
         p1 = self.maxpool1(r3)      # 84
@@ -98,25 +92,17 @@ class Yolov4Tiny(nn.Module):
 
         r9 = self.route9(cv14, cv11)    # 175
         p3 = self.maxpool3(r9)      # 178
-        print('p3: ', p3.size())
         cv15 = self.conv15(p3)      # 182
-        print('cv15: ', cv15.size())
 
         cv16 = self.conv16(cv15)    # 192
-        print('cv16: ', cv16.size())
         cv17 = self.conv17(cv16)    # 200
-        print('cv17: ', cv17.size())
         cv18 = self.conv18(cv17)    # 208
-        print('cv18: ', cv18.size())
 
         out1 = self.yolo1(cv18)     # 217
 
         r10 = self.route10(cv16)    # 234
-        print('r10: ', r10.size())
         cv19 = self.conv19(r10)     # 237
-        print('cv19: ', cv19.size())
         u1 = self.upsample1(cv19)   # 245
-        print('u1: ', u1.size())
 
         r11 = self.route11(u1, r8)  # 248
         cv20 = self.conv20(r11)     # 251

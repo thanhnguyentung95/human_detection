@@ -22,5 +22,6 @@ img, label = next(iter(dataloader))
 # pass data through model
 output = model(img.to(device=device, non_blocking=True).float())
 
-print('output', output)
-print('shape', output.shape)
+yolov1, yolov2 = output
+print('yolov1: ', yolov1.size())
+print('yolov2: ', yolov2.size())
