@@ -84,7 +84,7 @@ def xyxy2xywh(labels):
         labels[i, -4:] = [x, y, w, h]
 
 
-def create_dataloader(path, img_size=640, batch_size=8):
+def create_dataloader(path, img_size=416, batch_size=8):
     # representing a dataset.
     dataset = Data(path, img_size)
     
