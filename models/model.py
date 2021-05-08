@@ -110,7 +110,7 @@ class Yolov4Tiny(nn.Module):
 
         out2 = self.yolo2(cv21)     # 266
 
-        return out1, out2
+        return [out1, out2]
 
 
 class Route(nn.Module):

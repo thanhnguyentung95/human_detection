@@ -17,6 +17,9 @@ batch_size = 8
 img_size=416
 epochs = 20
 
+# hyperparameter
+hyp = {}
+
 # set device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -48,15 +51,24 @@ accumulate = n_batch_size / batch_size
 
 # train
 for epoch in range(epochs):
+    model.train()
     # start epoch
-    for i in range(nb):
+    for i, (imgs, labels) in enumerate(dataloader):
         # start batch
         batch = i + epoch * nb
         
+        # override learning rate if in warm up phrase
         if batch < wub:
             wulr = np.interp(batch, wu_batchs, wu_lr) # warm-up learning rate
             for g in optimizer.param_groups:
                 g['lr'] = wulr
+                                
+        # preds = model(imgs)
+        
+        loss = compute_loss(preds, labels.to(device), hyp)                 
+        
+        optimizer.zero_grad()
+        
         # end batch
     scheduler.step()
     # end epoch

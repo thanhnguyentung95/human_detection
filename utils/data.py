@@ -51,8 +51,6 @@ class Data(Dataset):
         if len(label) == 0:
             label = np.zeros((1, 5), dtype=np.float32)
         
-        # Convert
-        # xyxy2xywh(label) # also convert to Tensor 
         label = torch.from_numpy(label)
         # print('after convert label shape is: ', label.size())
         
@@ -73,15 +71,6 @@ def collate_fn(batch):
     labels = torch.cat(labels, 0)
     
     return imgs, labels
-
-
-def xyxy2xywh(labels):
-    for i, label in enumerate(labels):
-        x = (label[1] + label[3]) / 2
-        y = (label[2] + label[4]) / 2
-        w = (label[3] - label[1])
-        h = (label[4] - label[2])
-        labels[i, -4:] = [x, y, w, h]
 
 
 def create_dataloader(path, img_size=416, batch_size=8):
