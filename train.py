@@ -19,6 +19,7 @@ epochs = 20
 
 # hyperparameter
 hyp = {}
+model.hyp = hyp
 
 # set device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -65,7 +66,7 @@ for epoch in range(epochs):
                                 
         # preds = model(imgs)
         
-        loss = compute_loss(preds, labels.to(device), hyp)                 
+        loss = compute_loss(preds, labels.to(device), model)                 
         
         optimizer.zero_grad()
         
