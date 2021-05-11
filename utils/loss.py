@@ -91,8 +91,40 @@ def build_targets(preds, targets, model):
         return tbox, tcls, tanchors, indices
         
 
-def bbox_iou(pbox, tbox):
-    pass
+def bbox_iou(box1, box2, CIoU=True): # xywh format
+    '''
+        CIoU: https://arxiv.org/pdf/1911.08287.pdf
+    '''
+    box1 = box1.T
+    box2 = box2.T
+    
+    # calculate IoU
+    
+    b1_x1, b1_x2, b1_y1, b1_y2 = box1[0] - box1[2]/2, box1[0] + box1[2]/2, box1[1] - box1[3], box1[1] + box1[3]
+    b2_x1, b2_x2, b2_y1, b2_y2 = box2[0] - box2[2]/2, box2[0] + box2[2]/2, box2[1] - box2[3], box2[1] + box2[3]
+    
+    inter = (torch.min(b1_x2, b2_x2)  - torch.max(b1_x1, b2_x1)).clamp(0) *   \
+            (torch.min(b1_y2, b2_y2)  - torch.max(b1_y1, b2_y1)).clamp(0) # intersection area
+            
+    union = (box1[2] * box1[3] + 1e-16) + (box2[2] * box2[3]) - inter
+    
+    iou = inter/union
+    
+    if CIoU:
+        # square of diagonal length of smallest enclosing box covering two boxes.
+        c = (torch.max(b1_x2, b2_x2)  - torch.min(b1_x1, b2_x1)) ** 2 + \
+            (torch.max(b1_y2, b2_y2)  - torch.min(b1_y1, b2_y1)) ** 2 + 1e-16
+            
+        # square of distance between centers of two boxes
+        p = (box1[0] - box2[0]) ** 2 + (box1[1] - box2[1]) ** 2
+        
+        v = (4/ math.pi ** 2) * torch.pow(torch.atan(box1[2]/box1[3]) + torch.atan(box2[2]/box2[3]), 2)
+        
+        with torch.no_grad():
+            alpha = v / ((1- iou) + v + 1e-16)
+        
+        return iou - (p/c + alpha*v)
+    return iou
             
             
         
