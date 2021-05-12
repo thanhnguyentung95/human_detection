@@ -7,7 +7,8 @@ class Yolov4Tiny(nn.Module):
     def __init__(self):
         ''' References ./cfg/yolov4-tiny.cfg '''
         super(Yolov4Tiny, self).__init__()
-        self.anchors = np.array([10,14,  23,27,  37,58,  81,82,  135,169,  344,319]).reshape((2, -1, 2))
+        self.anchors = torch.tensor([10,14,  23,27,  37,58,  81,82,  135,169,  344,319])    \
+                                    .reshape((2, -1, 2)).float()
         # Backbone
         # Conv2d(..., stride=2, padding=1, dilation=1, ..., batchnorm=True)
         self.conv1 = Conv2d(3, 32, 3, stride=2, activation='leaky')         # 25
@@ -41,20 +42,20 @@ class Yolov4Tiny(nn.Module):
         # Neck
         self.conv16 = Conv2d(512, 256, 1, stride=1, padding=0, activation='leaky')     # 192
         self.conv17 = Conv2d(256, 512, 3, stride=1, activation='leaky')     # 200
-        self.conv18 = Conv2d(512, 18, 1, stride=1, padding=0, activation='linear', batchnorm=False)            # 208
+        self.conv18 = Conv2d(512, 255, 1, stride=1, padding=0, activation='linear', batchnorm=False)            # 208
 
         # Head
         # mask = 3,4,5
         # anchors = 10,14,  23,27,  37,58,  81,82,  135,169,  344,319
-        self.yolo1 = YoloLayer(anchors=self.anchors[1], nc=1, stride=32)            # 217
+        self.yolo1 = YoloLayer(anchors=self.anchors[1], nc=80, stride=32)            # 217
 
         self.route10 = Route()                                              # 234
         self.conv19 = Conv2d(256, 128, 1, stride=1, padding=0, activation='leaky')     # 237
         self.upsample1 = nn.Upsample(scale_factor=2)                        # 245
         self.route11 = Route()                                              # 248
         self.conv20 = Conv2d(384, 256, 3, stride=1, activation='leaky')     # 251
-        self.conv21 = Conv2d(256, 18, 1, stride=1, padding=0, activation='linear', batchnorm=False)            # 259
-        self.yolo2 = YoloLayer(anchors=self.anchors[0], nc=1, stride=16)    # 266
+        self.conv21 = Conv2d(256, 255, 1, stride=1, padding=0, activation='linear', batchnorm=False)            # 259
+        self.yolo2 = YoloLayer(anchors=self.anchors[0], nc=80, stride=16)    # 266
 
     def forward(self, x):
         cv1 = self.conv1(x)         # 25        

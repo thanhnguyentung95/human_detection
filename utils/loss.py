@@ -1,22 +1,23 @@
 import torch
-
+from torch import nn
+import math
 
 def compute_loss(preds, targets, model):
     device = targets.device
-    lbox, lcls, lobj = torch.zeros(1, device=device)
+    lbox, lcls, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
     tbox, tcls, tanchors, tindices = build_targets(preds, targets, model)
     
-    BCEcls = nn.BCEWithLogitsLoss.to(device)
-    BCEobj = nn.BCEWithLogitsLoss.to(device)
+    BCEcls = nn.BCEWithLogitsLoss().to(device)
+    BCEobj = nn.BCEWithLogitsLoss().to(device)
+    hyp = model.hyp
     
     for i, pi in enumerate(preds): # each YOLOLayer output
         b, a, gj, gi = tindices[i]  # batch(image), anchor, grid j, grid i
         
         ps = pi[b, a, gj, gi] # prediction set
-        
         n = b.shape[0] # number of targets
         
-        tobj = torch.zeros_like(pi[..., 0]).to(device)
+        tobj = torch.zeros_like(pi[..., 0], device=device)
         
         if n > 0:
             # calculate regression loss
@@ -27,17 +28,17 @@ def compute_loss(preds, targets, model):
             lbox += (1 - giou).mean()
             
             # calculate classification loss
-            if hyp.nc > 1: # more than one class
+            if hyp['nc'] > 1: # more than one class
                 t = torch.full_like(ps[:, 5:], 0, device=device) # intialize with full zeros
-                t[range(n), tcls] = 1 # assign target class
+                t[range(n), tcls[i]] = 1 # assign target class
                 lcls += BCEcls(ps[:, 5:], t)
                 
             # construct objectness
             tobj[b, a, gj, gi] = giou.detach().clamp(0).type(tobj.dtype)
-            
-        lobj += BCEobj(pi[:, 4], tobj)
         
-    bs = p.shape[0] # batch size
+        lobj += BCEobj(pi[..., 4], tobj)
+        
+    bs = preds[0].shape[0] # batch size
     loss = lbox + lcls + lobj
     return loss * bs, torch.cat((lobj, lcls, lbox, loss)).detach()
     
@@ -47,14 +48,15 @@ def build_targets(preds, targets, model):
     tbox, tcls, tanchors, indices = [], [], [], [] 
     gain = torch.ones(6, device=device)
     nt = len(targets) # number of targets 
-    off = torch.tensor([0, 1], [0, -1], [1, 0], [-1 0])
-    
-    for i, anchors in enumerate(model.anchors):
+    off = torch.tensor([[0, 1], [0, -1], [1, 0], [-1, 0]]).to(device)
+    for i in range(model.anchors.shape[0]):
+        anchors = model.anchors[i]
         a, t, offsets = [], targets, 0
         if nt > 0:
+            anchors = anchors.to(device)
             # filter out non responsible anchors
             na = len(anchors) # number of anchors
-            gain[2:] = torch.tensor(preds.shape)[[3, 2, 3, 2]]
+            gain[2:] = torch.tensor(preds[i].shape)[[3, 2, 3, 2]]
             t = t * gain
             a = torch.tensor(range(na)).view(na, 1).repeat(1, nt)
             r = t[None, :, 4:6] / anchors[:, None] # ratio
@@ -64,20 +66,21 @@ def build_targets(preds, targets, model):
             # requires nearby grids also responsible for detecting object
             gx = t[:, 2]
             gy = t[:, 3]
-            up = (hy % 1 < 0.5) & (hy > 1) # objects on the upper part of grid
-            lo = (hy % 1 > 0.5) & (hy < gain[2] - 1) # objects on the lower part of grid
-            le = (hx % 1 < 0.5) & (hx > 1) # object on the left of grid
-            ri = (hx % 1 > 0.5 ) * (hx < gain[3] - 1) # object on the right of grid
+            up = (gy % 1 < 0.5) & (gy > 1) # objects on the upper part of grid
+            lo = (gy % 1 > 0.5) & (gy < gain[2] - 1) # objects on the lower part of grid
+            le = (gx % 1 < 0.5) & (gx > 1) # object on the left of grid
+            ri = (gx % 1 > 0.5 ) * (gx < gain[3] - 1) # object on the right of grid
+            
+            z = torch.zeros_like(t[:, :2]).to(device)
             
             # add additional targets
             t = torch.cat((t, t[up], t[lo], t[le], t[ri]), 0)
             a = torch.cat((a, a[up], a[lo], a[le], a[ri]), 0)
             
             # offset for additional targets
-            z = torch.zeros_like(t[:, :2])
             offsets = torch.cat((z, z[up] + off[0], z[lo] + off[1], z[le] + off[2], z[ri] + off[3]), 0)
         
-        b, c = t[:, :2].T
+        b, c = t[:, :2].long().T
         gxy = t[:, 2:4]
         gwh = t[:, 4:6]        
         gij = (gxy - offsets).long()
@@ -88,7 +91,7 @@ def build_targets(preds, targets, model):
         tanchors.append(anchors[a])
         indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))
         
-        return tbox, tcls, tanchors, indices
+    return tbox, tcls, tanchors, indices
         
 
 def bbox_iou(box1, box2, CIoU=True): # xywh format

@@ -5,7 +5,8 @@ import numpy as np
 from utils.data import create_dataloader
 from models.model import Yolov4Tiny
 from torch.optim import lr_scheduler
-
+from utils.loss import compute_loss
+from torch import nn
 import matplotlib.pyplot as plt
 
 # HARD CODE area
@@ -17,10 +18,6 @@ batch_size = 8
 img_size=416
 epochs = 20
 
-# hyperparameter
-hyp = {}
-model.hyp = hyp
-
 # set device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -30,6 +27,12 @@ nb = len(dataloader.dataset)   # number of batches
 
 # create model
 model = Yolov4Tiny().to(device)
+
+# hyperparameter
+hyp = {}
+hyp['nc'] = 80
+hyp['anchor_t'] = 4.0
+model.hyp = hyp
 
 # Gradient descent
 # create optimizer 
@@ -64,11 +67,14 @@ for epoch in range(epochs):
             for g in optimizer.param_groups:
                 g['lr'] = wulr
                                 
-        # preds = model(imgs)
+        preds = model(imgs.float().to(device))
         
-        loss = compute_loss(preds, labels.to(device), model)                 
+        loss, loss_item = compute_loss(preds, labels.to(device), model)                 
         
         optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        print(loss)
         
         # end batch
     scheduler.step()
