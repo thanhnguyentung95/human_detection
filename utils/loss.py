@@ -64,7 +64,6 @@ def build_targets(preds, targets, model):
             r = t[None, :, 4:6] / anchors[:, None] # ratio
             m = torch.max(r, 1/r).max(2)[0] < model.hyp['anchor_t'] # mask for filter out non responsible anchors
             a, t = a[m], t.repeat(na, 1, 1)[m] # filter out
-            
             # requires nearby grids also responsible for detecting object
             gx = t[:, 2]
             gy = t[:, 3]
@@ -124,7 +123,7 @@ def bbox_iou(box1, box2, CIoU=True): # xywh format
         # square of distance between centers of two boxes
         p = (box1[0] - box2[0]) ** 2 + (box1[1] - box2[1]) ** 2
         
-        v = (4/ math.pi ** 2) * torch.pow(torch.atan(box1[2]/box1[3]) + torch.atan(box2[2]/box2[3]), 2)
+        v = (4/ math.pi ** 2) * torch.pow(torch.atan(box1[2]/box1[3]) - torch.atan(box2[2]/box2[3]), 2)
         
         with torch.no_grad():
             alpha = v / (1- iou + v + 1e-16)

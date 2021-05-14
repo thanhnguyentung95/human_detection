@@ -74,7 +74,7 @@ for epoch in range(epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # print(f'loss: {loss} - lobj: {loss_item[0]} - lcls: {loss_item[1]} - lbox: {loss_item[2]}')
+        print(f'loss: {loss} - lobj: {loss_item[0]} - lcls: {loss_item[1]} - lbox: {loss_item[2]}')
         
         # end batch
     scheduler.step()
