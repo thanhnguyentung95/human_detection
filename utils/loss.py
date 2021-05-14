@@ -2,10 +2,12 @@ import torch
 from torch import nn
 import math
 
+
 def compute_loss(preds, targets, model):
     device = targets.device
     lbox, lcls, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
     tbox, tcls, tanchors, tindices = build_targets(preds, targets, model)
+    
     
     BCEcls = nn.BCEWithLogitsLoss().to(device)
     BCEobj = nn.BCEWithLogitsLoss().to(device)
@@ -24,7 +26,7 @@ def compute_loss(preds, targets, model):
             pxy = ps[:, :2].sigmoid() * 2 - 0.5
             pwh = (ps[:, 2:4].sigmoid() * 2) ** 2 * tanchors[i] 
             pbox = torch.cat((pxy, pwh), 1)
-            giou = bbox_iou(pbox, tbox[i])
+            giou = bbox_iou(pbox, tbox[i], CIoU=True)
             lbox += (1 - giou).mean()
             
             # calculate classification loss
@@ -103,8 +105,8 @@ def bbox_iou(box1, box2, CIoU=True): # xywh format
     
     # calculate IoU
     
-    b1_x1, b1_x2, b1_y1, b1_y2 = box1[0] - box1[2]/2, box1[0] + box1[2]/2, box1[1] - box1[3], box1[1] + box1[3]
-    b2_x1, b2_x2, b2_y1, b2_y2 = box2[0] - box2[2]/2, box2[0] + box2[2]/2, box2[1] - box2[3], box2[1] + box2[3]
+    b1_x1, b1_x2, b1_y1, b1_y2 = box1[0] - box1[2]/2, box1[0] + box1[2]/2, box1[1] - box1[3]/2, box1[1] + box1[3]/2
+    b2_x1, b2_x2, b2_y1, b2_y2 = box2[0] - box2[2]/2, box2[0] + box2[2]/2, box2[1] - box2[3]/2, box2[1] + box2[3]/2
     
     inter = (torch.min(b1_x2, b2_x2)  - torch.max(b1_x1, b2_x1)).clamp(0) *   \
             (torch.min(b1_y2, b2_y2)  - torch.max(b1_y1, b2_y1)).clamp(0) # intersection area
@@ -112,6 +114,7 @@ def bbox_iou(box1, box2, CIoU=True): # xywh format
     union = (box1[2] * box1[3] + 1e-16) + (box2[2] * box2[3]) - inter
     
     iou = inter/union
+    # print('iou: ', iou.mean())
     
     if CIoU:
         # square of diagonal length of smallest enclosing box covering two boxes.
@@ -124,7 +127,7 @@ def bbox_iou(box1, box2, CIoU=True): # xywh format
         v = (4/ math.pi ** 2) * torch.pow(torch.atan(box1[2]/box1[3]) + torch.atan(box2[2]/box2[3]), 2)
         
         with torch.no_grad():
-            alpha = v / ((1- iou) + v + 1e-16)
+            alpha = v / (1- iou + v + 1e-16)
         
         return iou - (p/c + alpha*v)
     return iou

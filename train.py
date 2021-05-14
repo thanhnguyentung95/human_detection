@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 # HARD CODE area
 # path to list image file
 train_path = '/home/heligate/Documents/ScaledYOLOv4/coco/train2017.txt'
-lr = 1e-2
-momentum = 0.937
-batch_size = 8
+lr = 0.00261
+momentum = 0.9
+batch_size = 32
 img_size=416
 epochs = 20
 
@@ -36,7 +36,7 @@ model.hyp = hyp
 
 # Gradient descent
 # create optimizer 
-optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True)
+optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=0.0005)
 
 # learning rate scheduling
 lf = lambda epoch: ((1 + math.cos(epoch * math.pi / epochs))/2) * 0.99 + 0.01
@@ -74,7 +74,7 @@ for epoch in range(epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(loss)
+        # print(f'loss: {loss} - lobj: {loss_item[0]} - lcls: {loss_item[1]} - lbox: {loss_item[2]}')
         
         # end batch
     scheduler.step()
