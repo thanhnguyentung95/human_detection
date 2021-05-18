@@ -177,7 +177,8 @@ class YoloLayer(nn.Module):
         self.nx, self.ny = ng
         if not self.training:
             yv, xv = torch.meshgrid(torch.arange(self.ny, device=device), torch.arange(self.nx, device=device))
-            self.grid = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float() # bs, anchors, 
+            self.grid = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float().to(device) # bs, anchors, 
+            self.anchors = self.anchors.to(device)
 
     def forward(self, x):
         bs, _, nx, ny = x.shape
@@ -194,7 +195,7 @@ class YoloLayer(nn.Module):
 
         # inference
         io = x.sigmoid()
-        io[..., 2] = (io[..., 2] * 2. - 0.5 + self.grid) * self.stride
+        io[..., :2] = (io[..., :2] * 2. - 0.5 + self.grid)
         io[..., 2:4] = (io[..., 2:4] * 2.) ** 2 * self.anchors
-
+        io[..., :4] *= self.stride
         return io.view(bs, -1, self.no), x

@@ -54,7 +54,7 @@ def train(args):
     wu_lr = [0.01 * lr, max_lr] # warm-up range (in learning rate)
 
     # systhesis large batch size
-    n_batch_size = 1
+    n_batch_size = 32
     accumulate = n_batch_size / batch_size
 
     # resume

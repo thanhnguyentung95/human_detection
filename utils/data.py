@@ -38,10 +38,7 @@ class Data(Dataset):
         img_path = self.img_paths[index]
         label_path = self.label_paths[index]
         
-        img = cv2.imread(img_path)
-        assert img is not None, 'Can not read ' + img_path
-        img = cv2.resize(img, (self.img_size, self.img_size), interpolation=cv2.INTER_LINEAR)
-        img = torch.from_numpy(img).permute(2, 0, 1) # convert from channel last to channel first
+        img = imread(img_path, self.img_size)
         
         label = []
         if os.path.isfile(label_path):
@@ -56,6 +53,15 @@ class Data(Dataset):
         
         return img, label
     
+
+def imread(img_path, img_size):
+    img = cv2.imread(img_path)
+    assert img is not None, 'Can not read ' + img_path
+    img = cv2.resize(img, (img_size, img_size), interpolation=cv2.INTER_LINEAR)
+    img = torch.from_numpy(img).permute(2, 0, 1) # convert from channel last to channel first
+    
+    return img
+
 
 def collate_fn(batch):
     imgs, labels = zip(*batch)
