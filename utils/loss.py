@@ -41,7 +41,11 @@ def compute_loss(preds, targets, model):
         lobj += BCEobj(pi[..., 4], tobj)
         
     bs = preds[0].shape[0] # batch size
+    lbox *= hyp['giou']
+    lcls *= hyp['cls']
+    lobj *= hyp['obj']
     loss = lbox + lcls + lobj
+    
     return loss * bs, torch.cat((lobj, lcls, lbox, loss)).detach()
     
     

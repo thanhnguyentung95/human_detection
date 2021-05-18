@@ -2,3 +2,7 @@ lr0: 0.00261 # initial learning rate
 momentum: 0.9 # SGD momentum
 anchor_t: 4 # anchor ratio threshold
 nc: 80 # number of classes
+weight_decay: 0.0005
+giou: 0.05
+cls: 0.5
+obj: 1.0
