@@ -13,12 +13,8 @@ def test(args):
     img = imread(args.img, args.img_size)
     img = torch.tensor(img)[None, ...].to('cuda')
     
-    out1, out2 = model(img.float())
+    preds, out = model(img.float())
     
-    pred1, _ = out1
-    pred2, _ = out2
-    print('pred1: ', pred1.shape)
-    print('pred2: ', pred2.shape)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -111,7 +111,13 @@ class Yolov4Tiny(nn.Module):
 
         out2 = self.yolo2(cv21)     # 266
 
-        return [out1, out2]
+        outs = [out1, out2]
+        if self.training:
+            return outs
+        else: # inference
+            preds, outs = zip(*outs)
+            preds = torch.cat(preds, 1)
+            return preds, outs
 
 
 class Route(nn.Module):
