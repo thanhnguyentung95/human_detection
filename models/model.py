@@ -201,7 +201,7 @@ class YoloLayer(nn.Module):
 
         # inference
         io = x.sigmoid()
-        io[..., :2] = (io[..., :2] * 2. - 0.5 + self.grid)
-        io[..., 2:4] = (io[..., 2:4] * 2.) ** 2 * self.anchors
-        io[..., :4] *= self.stride
+        io[..., :2] = io[..., :2] * 2. - 0.5 + self.grid * self.stride
+        io[..., 2:4] = (io[..., 2:4] * 2.) ** 2. * self.anchors
+        # io[..., :4] *= self.stride
         return io.view(bs, -1, self.no), x

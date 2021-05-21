@@ -6,7 +6,7 @@ import numpy as np
 import yaml
 from utils.data import create_dataloader
 from utils.loss import compute_loss
-from utils.helper import create_exp_folder
+from utils.helper import create_exp_folder, log
 from models.model import Yolov4Tiny
 import torch
 from torch import nn
@@ -93,7 +93,7 @@ def train(args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            desc = '%10.4s' * 5 % (epoch, lobj.item(), lcls.item(), lbox.item(), total_loss.item())
+            desc = '%10.6s' * 5 % (epoch, lobj.item(), lcls.item(), lbox.item(), total_loss.item())
             progress.set_description(desc)
             
             # end batch
@@ -107,7 +107,11 @@ def train(args):
             'optimizer': optimizer.state_dict(),
             'scheduler': scheduler.state_dict()
         }
-        torch.save(checkpoint, create_exp_folder(epoch, model_name) + os.sep + 'checkpoint.pth')
+        
+        # save state and log
+        log_folder = create_exp_folder(epoch, model_name)
+        torch.save(checkpoint, log_folder + os.sep + 'checkpoint.pth')
+        log(log_folder + os.sep + 'loss.txt', title + '\n' + desc)
         
         
 if __name__ == '__main__':
