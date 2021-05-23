@@ -88,7 +88,7 @@ def train(args):
                                     
             preds = model(imgs.float().to(device))
             
-            loss, loss_item = compute_loss(preds, labels.to(device), model)                 
+            loss, loss_item = compute_loss(preds, labels.to(device), model)
             lobj, lcls, lbox, total_loss = loss_item
             optimizer.zero_grad()
             loss.backward()

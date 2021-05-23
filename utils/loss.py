@@ -8,7 +8,6 @@ def compute_loss(preds, targets, model):
     lbox, lcls, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
     tbox, tcls, tanchors, tindices = build_targets(preds, targets, model)
     
-    
     BCEcls = nn.BCEWithLogitsLoss().to(device)
     BCEobj = nn.BCEWithLogitsLoss().to(device)
     hyp = model.hyp
@@ -27,7 +26,7 @@ def compute_loss(preds, targets, model):
             pwh = (ps[:, 2:4].sigmoid() * 2) ** 2 * tanchors[i] 
             pbox = torch.cat((pxy, pwh), 1)
             giou = bbox_iou(pbox, tbox[i], CIoU=True)
-            lbox += (1 - giou).mean()
+            lbox += (1.0 - giou).mean()
             
             # calculate classification loss
             if hyp['nc'] > 1: # more than one class
@@ -117,7 +116,6 @@ def bbox_iou(box1, box2, CIoU=True): # xywh format
     union = (box1[2] * box1[3] + 1e-16) + (box2[2] * box2[3]) - inter
     
     iou = inter/union
-    # print('iou: ', iou.mean())
     
     if CIoU:
         # square of diagonal length of smallest enclosing box covering two boxes.
@@ -125,19 +123,12 @@ def bbox_iou(box1, box2, CIoU=True): # xywh format
             (torch.max(b1_y2, b2_y2)  - torch.min(b1_y1, b2_y1)) ** 2 + 1e-16
             
         # square of distance between centers of two boxes
-        p = (box1[0] - box2[0]) ** 2 + (box1[1] - box2[1]) ** 2
+        p = ((box1[0] - box2[0]) ** 2 + (box1[1] - box2[1]) ** 2) / 4
         
-        v = (4/ math.pi ** 2) * torch.pow(torch.atan(box1[2]/box1[3]) - torch.atan(box2[2]/box2[3]), 2)
+        v = (4 / math.pi ** 2) * torch.pow(torch.atan(box2[2]/box2[3]) - torch.atan(box1[2]/box1[3]), 2)
         
         with torch.no_grad():
             alpha = v / (1- iou + v + 1e-16)
         
-        return iou - (p/c + alpha*v)
+        return iou - (p / c + v * alpha)
     return iou
-            
-            
-        
-        
-        
-        
-        
