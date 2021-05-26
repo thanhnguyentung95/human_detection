@@ -21,7 +21,7 @@ def test(args):
     img = img[None, ...].to(device)
     
     preds, out = model(img.float())
-    preds = non_max_suppression(preds.detach())
+    preds = non_max_suppression(preds.detach(), conf_thres=0.5, iou_thres=0.6)
 
     img = cv2.imread(args.img)
     img = cv2.resize(img, (args.img_size, args.img_size), interpolation=cv2.INTER_LINEAR)

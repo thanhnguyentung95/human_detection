@@ -119,9 +119,9 @@ if __name__ == '__main__':
     parser.add_argument('--cfg', type=str, default='cfg/yolov4-tiny.cfg', help='config of model')
     parser.add_argument('--ckpt', type=str, default='', help='checkpoint to resume')
     parser.add_argument('--hyp', type=str, default='cfg/hyp.yaml', help='hyperparameters config')
-    parser.add_argument('--batch_size', type=int, default=32, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--img_size', type=int, default=416, help='image size for training')
-    parser.add_argument('--epochs', type=int, default=200, help='number of epochs')
+    parser.add_argument('--epochs', type=int, default=600, help='number of epochs')
     args = parser.parse_args()
     
     train(args)

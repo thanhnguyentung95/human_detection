@@ -3,4 +3,5 @@
 sub.py
 *.jpg
 *.pyc
+*.png
 lr.png
