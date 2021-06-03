@@ -37,7 +37,7 @@ def test(args):
             p2 = tuple(box[2:4])
             img = cv2.rectangle(img, p1, p2, (255, 128, 0), 2)
             
-    cv2.imwrite('out' + args.img, img)
+    cv2.imwrite(args.img.replace('.jpg','_out.jpg'), img)
     
 
 if __name__ == '__main__':

@@ -7,8 +7,9 @@ class Yolov4Tiny(nn.Module):
     def __init__(self):
         ''' References ./cfg/yolov4-tiny.cfg '''
         super(Yolov4Tiny, self).__init__()
-        self.anchors = torch.tensor([10,14,  23,27,  37,58,  81,82,  135,169,  344,319])    \
+        anchors = torch.tensor([10,14,  23,27,  37,58,  81,82,  135,169,  344,319])    \
                                     .reshape((2, -1, 2)).float()
+        self.anchors = torch.flip(anchors, [0])
         # Backbone
         # Conv2d(..., stride=2, padding=1, dilation=1, ..., batchnorm=True)
         self.conv1 = Conv2d(3, 32, 3, stride=2, activation='leaky')         # 25

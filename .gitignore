@@ -5,3 +5,5 @@ sub.py
 *.pyc
 *.png
 lr.png
+*_origin
+*_shadow*
