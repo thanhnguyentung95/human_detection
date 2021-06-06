@@ -48,7 +48,7 @@ class Yolov4Tiny(nn.Module):
         # Head
         # mask = 3,4,5
         # anchors = 10,14,  23,27,  37,58,  81,82,  135,169,  344,319
-        self.yolo1 = YoloLayer(anchors=self.anchors[1], nc=80, stride=32)            # 217
+        self.yolo1 = YoloLayer(anchors=self.anchors[0], nc=80, stride=32)            # 217
 
         self.route10 = Route()                                              # 234
         self.conv19 = Conv2d(256, 128, 1, stride=1, padding=0, activation='leaky')     # 237
@@ -56,7 +56,7 @@ class Yolov4Tiny(nn.Module):
         self.route11 = Route()                                              # 248
         self.conv20 = Conv2d(384, 256, 3, stride=1, activation='leaky')     # 251
         self.conv21 = Conv2d(256, 255, 1, stride=1, padding=0, activation='linear', batchnorm=False)            # 259
-        self.yolo2 = YoloLayer(anchors=self.anchors[0], nc=80, stride=16)    # 266
+        self.yolo2 = YoloLayer(anchors=self.anchors[1], nc=80, stride=16)    # 266
 
     def forward(self, x):
         cv1 = self.conv1(x)         # 25        
