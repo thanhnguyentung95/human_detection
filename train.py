@@ -6,13 +6,14 @@ import numpy as np
 import yaml
 from utils.data import create_dataloader
 from utils.loss import compute_loss
-from utils.helper import create_exp_folder, log
+from utils.helper import prepare_checkpoint_folder, log
 from models.model import Yolov4Tiny
 import torch
 from torch import nn
 from torch.optim import lr_scheduler
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
 
 def train(args):
@@ -59,6 +60,7 @@ def train(args):
 
     # resume
     start_epoch = 0
+    exp = 0
     model_name = args.cfg.split('/')[1].replace('-', '_')
     ckpt_path = args.ckpt
     if ckpt_path:
@@ -67,14 +69,23 @@ def train(args):
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         scheduler.load_state_dict(checkpoint['scheduler'])
+        try:
+            exp = checkpoint['exp'] + 1
+        except:
+            pass
         print('scheduler: ', checkpoint['scheduler'])
+
 
     # train
     for epoch in range(start_epoch, epochs):
+        # Tensorboard
+        writer = SummaryWriter(f'runs/exp_{exp}')
+        
         model.train()
         # start epoch
         progress = tqdm(dataloader, total=nb)
-        title = '%10s' * 5 % ('Epoch', 'lobj', 'lcls', 'lbox', 'loss')
+        title = '%10s' * 5 % ('Epoch', 'lobj', 'lcls', 'lbox', 'loss')        
+        alobj, alcls, albox, atotal_loss = 0, 0, 0, 0   # loss accumulated
         print(title)
         for i, (imgs, labels) in enumerate(progress):
             # start batch
@@ -93,25 +104,47 @@ def train(args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            desc = '%10.6s' * 5 % (epoch, lobj.item(), lcls.item(), lbox.item(), total_loss.item())
+            
+            lobj, lcls, lbox, total_loss = lobj.item(), lcls.item(), lbox.item(), total_loss.item()
+            
+            # set description
+            desc = '%10.6s' * 5 % (epoch, lobj, lcls, lbox, total_loss)
             progress.set_description(desc)
             
+            # accumulate loss
+            alobj += lobj
+            alcls += lcls
+            albox += lbox
+            atotal_loss += total_loss
+    
             # end batch
         scheduler.step()
         # end epoch
+        
+        # average loss
+        alobj /= nb
+        alcls /= nb
+        albox /= nb
+        atotal_loss /= nb
 
         # create checkpoint
-        checkpoint = { 
+        checkpoint = {
+            'exp': exp,
             'epoch': epoch,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'scheduler': scheduler.state_dict()
         }
         
+        writer.add_scalars('loss', {'obj': alobj,
+                            'cls': alcls,
+                            'box': albox,
+                            'total': atotal_loss}, epoch)
+        writer.close()
+        
         # save state and log
-        log_folder = create_exp_folder(epoch, model_name)
-        torch.save(checkpoint, log_folder + os.sep + 'checkpoint.pth')
-        log(log_folder + os.sep + 'loss.txt', title + '\n' + desc)
+        ckpt_folder = prepare_checkpoint_folder(exp)
+        torch.save(checkpoint, ckpt_folder + os.sep + 'checkpoint_' + str(epoch) + '.pth')
         
         
 if __name__ == '__main__':

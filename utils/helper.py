@@ -3,16 +3,14 @@ import torch
 import torchvision
 
 
-def create_exp_folder(exp, model_name):
-    exp_root_folder = 'runs'
-    exp_folder_name = f'{exp}_{model_name}'
-    path = exp_root_folder + os.sep + exp_folder_name
-    
-    if not os.path.isdir(exp_root_folder): # create if root exp folder not exist
-        os.mkdir(exp_root_folder)
+def prepare_checkpoint_folder(exp):
+    root_folder = 'runs' + os.sep + 'exp_' + str(exp)
+    path = root_folder + os.sep + 'weights'
+    # if not os.path.isdir(root_folder): # create if exp folder does not exist
+    #     os.mkdir(root_folder)
     if not os.path.isdir(path): # create if exp folder does not exist
         os.mkdir(path)
-        
+    
     return path
 
 
@@ -45,8 +43,3 @@ def xywh2xyxy(box):
     nb[:, 2] = box[:, 0] + box[:, 2]/2
     nb[:, 3] = box[:, 1] + box[:, 3]/2
     return nb
-
-
-def log(file_path, text):
-    with open(file_path, 'w+') as f:
-        f.write(text)
