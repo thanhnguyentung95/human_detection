@@ -6,7 +6,7 @@ import numpy as np
 import yaml
 from utils.data import create_dataloader
 from utils.loss import compute_loss
-from utils.helper import prepare_checkpoint_folder, log
+from utils.helper import prepare_checkpoint_folder
 from models.model import Yolov4Tiny
 import torch
 from torch import nn
