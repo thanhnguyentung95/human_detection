@@ -2,11 +2,12 @@ import os
 import cv2
 import torch
 import numpy as np
+from PIL import Image
 from torch.utils.data import Dataset
 
 
 class Data(Dataset):
-    def __init__(self, path, img_size):
+    def __init__(self, path, img_size, cache_labels=False):
         # Assert if file exist
         assert os.path.isfile(path), path + 'does not exist'
         
@@ -27,6 +28,25 @@ class Data(Dataset):
         label_folder = os.sep + 'labels' + os.sep
         self.label_paths = [img_path.replace('.jpg', '.txt').replace(img_folder, label_folder) 
                              for img_path in self.img_paths]
+        if cache_labels:
+            from tqdm import tqdm
+            
+            self.labels = []
+            self.shapes = []
+            pbar = tqdm(zip(self.label_paths, self.img_paths))
+            for label_path, img_path in pbar:
+                if not os.path.isfile(label_path): # label not exist
+                    continue
+                img = Image.open(img_path)
+                shape = img.size
+                with open(label_path, 'r') as f:
+                    label = np.array([line.split() for line in f.read().splitlines()], dtype=np.float32)
+                if len(label):
+                    for l in label:
+                        self.labels.append(l)
+                        self.shapes.append(shape)            
+            self.labels = np.array(self.labels)
+            self.shapes = np.array(self.shapes)
     
     def __len__(self):
         return self.len
