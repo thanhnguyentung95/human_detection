@@ -1,2 +1,9 @@
 /env
+/runs
 sub.py
+*.jpg
+*.pyc
+*.png
+lr.png
+*_origin
+*_shadow*
